@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class EventService {
-  static const String apiKey = '39ZsGws53POWAWqZ4o18STVQY1Z1edqz';
+  static const String apiKey = '';
 
   static Future<List<Map<String, dynamic>>> fetchEvents(double lat, double lon) async {
     final url =
