@@ -6,9 +6,9 @@ class EventDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final Map<String, dynamic> event =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-
     final url = event['url'];
     final venue = event['_embedded']?['venues']?[0]?['name'] ?? 'Unknown';
+    final imageUrl = event['images']?[0]?['url'] ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -31,6 +31,19 @@ class EventDetailsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+
+                  if (imageUrl.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        imageUrl,
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  if (imageUrl.isNotEmpty) SizedBox(height: 16),
+
                   Text(
                     event['name'],
                     style: TextStyle(
