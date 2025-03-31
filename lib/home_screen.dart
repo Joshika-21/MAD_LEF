@@ -76,15 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   activeColor: Colors.white,
                 ),
-        actions: [
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, _) => Switch(
-              value: themeProvider.isDarkMode,
-              onChanged: (value) {
-                themeProvider.toggleTheme(value);
-              },
-              activeColor: Colors.white,
-            ),
           ),
         ],
       ),
@@ -292,7 +283,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                
+                ),
+              ),
     );
   }
 }
