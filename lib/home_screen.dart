@@ -56,10 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final matchesCategory =
           selectedCategory == 'All' ||
           category == selectedCategory.toLowerCase();
-          event['classifications']?[0]?['segment']?['name'] ?? 'Other';
-      final matchesSearch = name.contains(searchQuery.toLowerCase());
-      final matchesCategory =
-          selectedCategory == 'All' || category == selectedCategory;
       return matchesSearch && matchesCategory;
     }).toList();
   }
