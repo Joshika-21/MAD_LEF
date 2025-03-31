@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "905881250825",
+    "project_id": "local-events-finder-fc40c",
+    "storage_bucket": "local-events-finder-fc40c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:905881250825:android:7f10b004fa7f9b92101cd8",
+        "android_client_info": {
+          "package_name": "com.example.local_events_finder"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJDa0MxZvszqxHqkfOnbgAsZ7YVzEipG4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
