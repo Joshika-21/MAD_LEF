@@ -3,6 +3,8 @@ import 'event_service.dart';
 import 'location_service.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
+import 'package:hive/hive.dart';
+
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -14,6 +16,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isLoading = true;
   String? errorMsg;
 
+  late Box<String> favoritesBox;
+  List<String> get favoriteEventIds => favoritesBox.values.toList();
+
+
   TextEditingController searchController = TextEditingController();
   String searchQuery = '';
   String selectedCategory = 'All';
@@ -22,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    favoritesBox = Hive.box<String>('favoritesBox');
     loadEvents();
   }
 
@@ -48,21 +55,32 @@ class _HomeScreenState extends State<HomeScreen> {
     return events.where((event) {
       final name = event['name'].toString().toLowerCase();
       final category =
-          event['classifications']?[0]?['segment']?['name']
-              ?.toString()
-              .toLowerCase() ??
+          event['classifications']?[0]?['segment']?['name']?.toLowerCase() ??
           'other';
-      final matchesSearch = name.contains(searchQuery.toLowerCase());
-      final matchesCategory =
-          selectedCategory == 'All' ||
-          category == selectedCategory.toLowerCase();
-      return matchesSearch && matchesCategory;
+      return (selectedCategory == 'All' ||
+              category == selectedCategory.toLowerCase()) &&
+          name.contains(searchQuery.toLowerCase());
     }).toList();
+  }
+
+  List<Map<String, dynamic>> get favoriteEvents {
+    return events.where((e) => favoriteEventIds.contains(e['id'])).toList();
+  }
+
+  void toggleFavorite(String eventId) {
+    setState(() {
+      if (favoriteEventIds.contains(eventId)) {
+        favoriteEventIds.remove(eventId);
+      } else {
+        favoriteEventIds.add(eventId);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Nearby Events'),
         backgroundColor: Colors.deepPurple,
@@ -71,9 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
             builder:
                 (context, themeProvider, _) => Switch(
                   value: themeProvider.isDarkMode,
-                  onChanged: (value) {
-                    themeProvider.toggleTheme(value);
-                  },
+                  onChanged: (value) => themeProvider.toggleTheme(value),
                   activeColor: Colors.white,
                 ),
           ),
@@ -84,92 +100,167 @@ class _HomeScreenState extends State<HomeScreen> {
               ? Center(
                 child: CircularProgressIndicator(color: Colors.deepPurple),
               )
-              : errorMsg != null
-              ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Error: $errorMsg',
-                    style: TextStyle(fontSize: 16, color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              )
               : RefreshIndicator(
                 onRefresh: loadEvents,
                 child: SingleChildScrollView(
                   physics: AlwaysScrollableScrollPhysics(),
                   child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Search Bar
+                        // 🔍 Search
                         TextField(
                           controller: searchController,
                           decoration: InputDecoration(
-                            prefixIcon: Icon(Icons.search),
                             hintText: 'Search events...',
+                            prefixIcon: Icon(Icons.search),
+                            filled: true,
+                            fillColor: Colors.grey.shade200,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
                             ),
                           ),
-                          onChanged: (value) {
-                            setState(() {
-                              searchQuery = value;
-                            });
-                          },
+                          onChanged: (val) => setState(() => searchQuery = val),
                         ),
+
                         SizedBox(height: 12),
 
-                        // Filter Chips
-                        Wrap(
-                          spacing: 8,
-                          children:
-                              categories.map((cat) {
-                                return ChoiceChip(
-                                  label: Text(cat),
-                                  selected: selectedCategory == cat,
-                                  onSelected: (_) {
-                                    setState(() {
-                                      selectedCategory = cat;
-                                    });
-                                  },
-                                  selectedColor: Colors.deepPurple,
-                                  labelStyle: TextStyle(
-                                    color:
-                                        selectedCategory == cat
-                                            ? Colors.white
-                                            : Colors.black,
+                        // 🔘 Category Chips
+                        SizedBox(
+                          height: 40,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children:
+                                categories.map((cat) {
+                                  final isSelected = selectedCategory == cat;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: ChoiceChip(
+                                      label: Text(cat),
+                                      selected: isSelected,
+                                      onSelected:
+                                          (_) => setState(
+                                            () => selectedCategory = cat,
+                                          ),
+                                      selectedColor: Colors.deepPurple,
+                                      backgroundColor: Colors.grey.shade200,
+                                      labelStyle: TextStyle(
+                                        color:
+                                            isSelected
+                                                ? Colors.white
+                                                : Colors.black,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
+                        ),
+
+                        SizedBox(height: 24),
+
+                        // ❤️ Favorites Horizontal List
+                        if (favoriteEvents.isNotEmpty) ...[
+                          Text(
+                            "Your Favorites",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          SizedBox(
+                            height: 170,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: favoriteEvents.length,
+                              itemBuilder: (context, index) {
+                                final event = favoriteEvents[index];
+                                final imageUrl =
+                                    event['images']?[0]?['url'] ?? '';
+                                return GestureDetector(
+                                  onTap:
+                                      () => Navigator.pushNamed(
+                                        context,
+                                        '/details',
+                                        arguments: event,
+                                      ),
+                                  child: Container(
+                                    width: 140,
+                                    margin: EdgeInsets.only(right: 12),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      color: Theme.of(context).cardColor,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black12,
+                                          blurRadius: 4,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(12),
+                                          ),
+                                          child: Image.network(
+                                            imageUrl,
+                                            height: 100,
+                                            width: 140,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Text(
+                                            event['name'],
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
-                              }).toList(),
-                        ),
-                        SizedBox(height: 12),
+                              },
+                            ),
+                          ),
+                          SizedBox(height: 24),
+                        ],
 
-                        // Content section (events or empty)
+                        // 📆 Upcoming Events
+                        Text(
+                          "Upcoming Events",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+
                         if (filteredEvents.isEmpty)
-                          SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.5,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.event_busy,
-                                    size: 80,
-                                    color: Colors.grey,
-                                  ),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    'No events found for "$selectedCategory"',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
+                          Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.event_busy,
+                                  size: 80,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'No events found for "$selectedCategory"',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
                             ),
                           )
                         else
@@ -187,6 +278,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       'TBA';
                                   final imageUrl =
                                       event['images']?[0]?['url'] ?? '';
+                                  final isFavorited = favoriteEventIds.contains(
+                                    event['id'],
+                                  );
 
                                   return Card(
                                     margin: EdgeInsets.symmetric(vertical: 8),
@@ -212,7 +306,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                       title: Text(
                                         event['name'],
                                         style: TextStyle(
-                                          fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.deepPurple[800],
                                         ),
@@ -221,40 +314,37 @@ class _HomeScreenState extends State<HomeScreen> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          SizedBox(height: 8),
                                           Row(
                                             children: [
                                               Icon(
                                                 Icons.calendar_today,
-                                                size: 16,
+                                                size: 14,
                                                 color: Colors.grey[600],
                                               ),
-                                              SizedBox(width: 6),
+                                              SizedBox(width: 4),
                                               Text(date),
                                             ],
                                           ),
-                                          SizedBox(height: 4),
                                           Row(
                                             children: [
                                               Icon(
                                                 Icons.access_time,
-                                                size: 16,
+                                                size: 14,
                                                 color: Colors.grey[600],
                                               ),
-                                              SizedBox(width: 6),
+                                              SizedBox(width: 4),
                                               Text(time),
                                             ],
                                           ),
-                                          SizedBox(height: 4),
                                           Row(
                                             children: [
                                               Icon(
                                                 Icons.location_on,
-                                                size: 16,
+                                                size: 14,
                                                 color: Colors.grey[600],
                                               ),
-                                              SizedBox(width: 6),
-                                              Flexible(
+                                              SizedBox(width: 4),
+                                              Expanded(
                                                 child: Text(
                                                   venue,
                                                   overflow:
@@ -265,9 +355,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         ],
                                       ),
-                                      trailing: Icon(
-                                        Icons.arrow_forward_ios_rounded,
-                                        size: 18,
+                                      trailing: IconButton(
+                                        icon: Icon(
+                                          isFavorited
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          color:
+                                              isFavorited
+                                                  ? Colors.red
+                                                  : Colors.grey,
+                                        ),
+                                        onPressed:
+                                            () => toggleFavorite(event['id']),
                                       ),
                                       onTap: () {
                                         Navigator.pushNamed(
