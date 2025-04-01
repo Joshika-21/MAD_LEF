@@ -14,20 +14,19 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   await Hive.openBox<String>('favoritesBox');
-  await Firebase.initializeApp(); // ✅ Firebase init
+  await Firebase.initializeApp(); 
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => FavoritesProvider()), // ✅ added
+        ChangeNotifierProvider(create: (_) => FavoritesProvider()), 
       ],
       child: LocalEventsApp(),
     ),
   );
 }
 
-// ✅ Inline FavoritesProvider (for syncing favorites)
 class FavoritesProvider extends ChangeNotifier {
   final Box<String> _favoritesBox = Hive.box<String>('favoritesBox');
 
@@ -86,7 +85,6 @@ class LocalEventsApp extends StatelessWidget {
   }
 }
 
-// ✅ Firebase Auth routing (Login → Home / SignIn)
 class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -98,9 +96,9 @@ class AuthGate extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         } else if (snapshot.hasData) {
-          return HomeScreen(); // ✅ Authenticated
+          return HomeScreen(); 
         } else {
-          return SignInScreen(); // ❌ Not logged in
+          return SignInScreen(); 
         }
       },
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
-import 'main.dart'; // Ensure FavoritesProvider is defined in main.dart and imported correctly
+import 'main.dart'; 
 
 class EventDetailsScreen extends StatelessWidget {
   @override
@@ -40,6 +40,7 @@ class EventDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            
             // 🖼 Event Image
             if (imageUrl.isNotEmpty)
               ClipRRect(
